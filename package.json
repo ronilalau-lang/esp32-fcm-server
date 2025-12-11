@@ -1,15 +1,13 @@
 {
-  "name": "esp32-firebase-fcm",
+  "name": "esp32-notify",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "firebase-admin": "^13.6.0"
+    "express": "^4.18.2",
+    "firebase-admin": "^11.10.1"
   }
 }
