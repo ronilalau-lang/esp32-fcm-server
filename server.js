@@ -1,75 +1,67 @@
-import express from "express";
 import admin from "firebase-admin";
+import express from "express";
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 3000;
 
-// -----------------------------------------
-// ?? Inicializa Firebase Admin usando Render
-// -----------------------------------------
+// -------------------------------
+// ğŸ” CARREGAR CREDENCIAIS DO FIREBASE
+// -------------------------------
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-  databaseURL: "https://esp32-painel-default-rtdb.firebaseio.com"
+  databaseURL: process.env.DATABASE_URL
 });
 
-// ------------------------------------------------
-// ?? Token do seu celular (coloquei o seu aqui)
-// ------------------------------------------------
-const DEVICE_TOKEN = "fAovYUcZX1b4-RyhGsHBr8:APA91bHAXEsp4qsGn63plIaW-2AyFVwNG3vGc_2tqNbqSP9GzgHc6nhwDYGykpZ1Or2dkmNh3sqv_Bdwa0Y-bYrFIc9aUMAzyiq8mMAYfCcFccNH0mi09gc";
-
-// ------------------------------------------------
-// ?? MONITORAMENTO DO FIREBASE EM TEMPO REAL
-// ------------------------------------------------
+// -------------------------------
+// ğŸ”¥ MONITORAR VALOR DO FIREBASE
+// -------------------------------
+const DEVICE_TOKEN = process.env.DEVICE_TOKEN;
 const db = admin.database();
 const ref = db.ref("/quarto/ambiente");
 
 let ultimoValor = null;
 
-console.log("?? Monitorando: /quarto/ambiente ...");
+console.log("ğŸ‘€ Monitorando alteraÃ§Ãµes em /quarto/ambiente ...");
 
 ref.on("value", async (snapshot) => {
   const valor = snapshot.val();
-  console.log("? Valor atualizado:", valor);
+  console.log("Valor do Firebase:", valor);
 
-  // Evita notificação ao iniciar
   if (ultimoValor === null) {
     ultimoValor = valor;
-    return;
+    return; // evita disparo na inicializaÃ§Ã£o
   }
 
-  // Se mudou, envia notificação
   if (valor !== ultimoValor) {
-    console.log("?? Mudança detectada! Enviando notificação...");
+    console.log("ğŸ“¨ MudanÃ§a detectada! Enviando notificaÃ§Ã£o...");
 
     const message = {
+      token: DEVICE_TOKEN,
       notification: {
-        title: "Mudança no Quarto",
+        title: "MudanÃ§a no Quarto",
         body: Novo valor: ${valor}
-      },
-      token: DEVICE_TOKEN
+      }
     };
 
     try {
       await admin.messaging().send(message);
-      console.log("? Notificação enviada!");
+      console.log("âœ… NotificaÃ§Ã£o enviada!");
     } catch (e) {
-      console.error("? Erro ao enviar:", e);
+      console.error("âŒ Erro ao enviar:", e);
     }
 
     ultimoValor = valor;
   }
 });
 
-// ------------------------------------------------
-// Rota básica (apenas para Render saber que existe)
-// ------------------------------------------------
+// -------------------------------
+// ROTA DE TESTE
+// -------------------------------
 app.get("/", (req, res) => {
-  res.send("Servidor de notificações rodando ?");
+  res.send("ğŸ”¥ Servidor rodando no Render!");
 });
 
-// Inicia o servidor
+// -------------------------------
 app.listen(PORT, () => {
-  console.log("?? Servidor rodando na porta " + PORT);
+  console.log("ğŸŒ Server ON porta " + PORT);
 });
