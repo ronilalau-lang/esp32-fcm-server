@@ -6,43 +6,70 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Inicializa o Firebase Admin com as credenciais guardadas no ambiente da Render
+// -----------------------------------------
+// ?? Inicializa Firebase Admin usando Render
+// -----------------------------------------
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
   databaseURL: "https://esp32-painel-default-rtdb.firebaseio.com"
 });
 
-// Rota principal (Render usa para testar)
-app.get("/", (req, res) => {
-  res.send("Servidor rodando!");
+// ------------------------------------------------
+// ?? Token do seu celular (coloquei o seu aqui)
+// ------------------------------------------------
+const DEVICE_TOKEN = "fAovYUcZX1b4-RyhGsHBr8:APA91bHAXEsp4qsGn63plIaW-2AyFVwNG3vGc_2tqNbqSP9GzgHc6nhwDYGykpZ1Or2dkmNh3sqv_Bdwa0Y-bYrFIc9aUMAzyiq8mMAYfCcFccNH0mi09gc";
+
+// ------------------------------------------------
+// ?? MONITORAMENTO DO FIREBASE EM TEMPO REAL
+// ------------------------------------------------
+const db = admin.database();
+const ref = db.ref("/quarto/ambiente");
+
+let ultimoValor = null;
+
+console.log("?? Monitorando: /quarto/ambiente ...");
+
+ref.on("value", async (snapshot) => {
+  const valor = snapshot.val();
+  console.log("? Valor atualizado:", valor);
+
+  // Evita notificação ao iniciar
+  if (ultimoValor === null) {
+    ultimoValor = valor;
+    return;
+  }
+
+  // Se mudou, envia notificação
+  if (valor !== ultimoValor) {
+    console.log("?? Mudança detectada! Enviando notificação...");
+
+    const message = {
+      notification: {
+        title: "Mudança no Quarto",
+        body: Novo valor: ${valor}
+      },
+      token: DEVICE_TOKEN
+    };
+
+    try {
+      await admin.messaging().send(message);
+      console.log("? Notificação enviada!");
+    } catch (e) {
+      console.error("? Erro ao enviar:", e);
+    }
+
+    ultimoValor = valor;
+  }
 });
 
-// ---------------------------------
-// ROTA PARA ENVIAR NOTIFICAÃ‡ÃƒO
-// ---------------------------------
-app.post("/send", async (req, res) => {
-
-  // SEU DEVICE TOKEN
-  const deviceToken = "fAovYUcZX1b4-RyhGsHBr8:APA91bHAXEsp4qsGn63plIaW-2AyFVwNG3vGc_2tqNbqSP9GzgHc6nhwDYGykpZ1Or2dkmNh3sqv_Bdwa0Y-bYrFIc9aUMAzyiq8mMAYfCcFccNH0mi09gc";
-
-  const message = {
-    token: deviceToken,
-    notification: {
-      title: "NotificaÃ§Ã£o ESP32",
-      body: "Mensagem enviada pelo servidor Render!"
-    }
-  };
-
-  try {
-    const response = await admin.messaging().send(message);
-    res.send("NotificaÃ§Ã£o enviada: " + response);
-  } catch (error) {
-    console.error("Erro ao enviar:", error);
-    res.status(500).send("Erro ao enviar notificaÃ§Ã£o");
-  }
+// ------------------------------------------------
+// Rota básica (apenas para Render saber que existe)
+// ------------------------------------------------
+app.get("/", (req, res) => {
+  res.send("Servidor de notificações rodando ?");
 });
 
 // Inicia o servidor
 app.listen(PORT, () => {
-  console.log("Server listening on port " + PORT);
+  console.log("?? Servidor rodando na porta " + PORT);
 });
