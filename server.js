@@ -1,67 +1,75 @@
-import admin from "firebase-admin";
 import express from "express";
+import admin from "firebase-admin";
 
 const app = express();
+app.use(express.json());
+
 const PORT = process.env.PORT || 3000;
 
-// -------------------------------
-// 🔐 CARREGAR CREDENCIAIS DO FIREBASE
-// -------------------------------
+// Inicializa Firebase Admin com a chave do Render
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
   databaseURL: process.env.DATABASE_URL
 });
 
-// -------------------------------
-// 🔥 MONITORAR VALOR DO FIREBASE
-// -------------------------------
+// Token do FCM (guardado no Render)
 const DEVICE_TOKEN = process.env.DEVICE_TOKEN;
+
+// Ambientes que o ESP32 atualiza
+const ambientes = ["quarto", "cozinha", "banheiro", "quintal"];
+
+// Armazena último estado para evitar notificações repetidas
+const ultimoEstado = {};
+
 const db = admin.database();
-const ref = db.ref("/quarto/ambiente");
 
-let ultimoValor = null;
+ambientes.forEach((amb) => {
 
-console.log("👀 Monitorando alterações em /quarto/ambiente ...");
+  const ref = db.ref(${amb}/ambiente);
 
-ref.on("value", async (snapshot) => {
-  const valor = snapshot.val();
-  console.log("Valor do Firebase:", valor);
+  ref.on("value", async (snap) => {
+    const novoValor = snap.val();
 
-  if (ultimoValor === null) {
-    ultimoValor = valor;
-    return; // evita disparo na inicialização
-  }
+    console.log(📌 Ambiente ${amb} mudou para:, novoValor);
 
-  if (valor !== ultimoValor) {
-    console.log("📨 Mudança detectada! Enviando notificação...");
-
-    const message = {
-      token: DEVICE_TOKEN,
-      notification: {
-        title: "Mudança no Quarto",
-        body: Novo valor: ${valor}
-      }
-    };
-
-    try {
-      await admin.messaging().send(message);
-      console.log("✅ Notificação enviada!");
-    } catch (e) {
-      console.error("❌ Erro ao enviar:", e);
+    // Se é a primeira leitura, apenas registra
+    if (ultimoEstado[amb] === undefined) {
+      ultimoEstado[amb] = novoValor;
+      return;
     }
 
-    ultimoValor = valor;
-  }
+    // Se mudou, então notifica
+    if (novoValor !== ultimoEstado[amb]) {
+      ultimoEstado[amb] = novoValor;
+
+      const texto =
+        novoValor === 1
+          ? ${amb.toUpperCase()} ficou CLARO 💡
+          : ${amb.toUpperCase()} ficou ESCURO 🌑;
+
+      const message = {
+        token: DEVICE_TOKEN,
+        notification: {
+          title: Mudança no ${amb},
+          body: texto
+        }
+      };
+
+      try {
+        await admin.messaging().send(message);
+        console.log(📨 Notificação enviada: ${texto});
+      } catch (e) {
+        console.error("❌ Erro ao enviar notificação:", e);
+      }
+    }
+  });
 });
 
-// -------------------------------
-// ROTA DE TESTE
-// -------------------------------
+// Página padrão
 app.get("/", (req, res) => {
-  res.send("🔥 Servidor rodando no Render!");
+  res.send("Servidor FCM funcionando e monitorando ambientes!");
 });
 
-// -------------------------------
 app.listen(PORT, () => {
-  console.log("🌐 Server ON porta " + PORT);
+  console.log("🚀 Server listening on port " + PORT);
 });
