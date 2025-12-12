@@ -18,58 +18,45 @@ const DEVICE_TOKEN = process.env.DEVICE_TOKEN;
 // Ambientes que o ESP32 atualiza
 const ambientes = ["quarto", "cozinha", "banheiro", "quintal"];
 
-// Armazena Ãºltimo estado para evitar notificaÃ§Ãµes repetidas
+// Armazena último estado para evitar notificações repetidas
 const ultimoEstado = {};
 
 const db = admin.database();
 
 ambientes.forEach((amb) => {
 
-  const ref = db.ref(${amb}/ambiente);
+  const ref = db.ref(`${amb}/ambiente`);ref.on("value", async (snap) => {
+  const novoValor = snap.val();
+  console.log([DEBUG] ${amb} mudou para: ${novoValor});  // <-- log extra
 
-  ref.on("value", async (snap) => {
-    const novoValor = snap.val();
+  if (ultimoEstado[amb] === undefined) {
+    ultimoEstado[amb] = novoValor;
+    return;
+  }
 
-    console.log(ðŸ“Œ Ambiente ${amb} mudou para:, novoValor);
+  if (novoValor !== ultimoEstado[amb]) {
+    ultimoEstado[amb] = novoValor;
 
-    // Se Ã© a primeira leitura, apenas registra
-    if (ultimoEstado[amb] === undefined) {
-      ultimoEstado[amb] = novoValor;
-      return;
-    }
+    const texto =
+      novoValor === 1
+        ? ${amb.toUpperCase()} ficou CLARO ??
+        : ${amb.toUpperCase()} ficou ESCURO ??;
 
-    // Se mudou, entÃ£o notifica
-    if (novoValor !== ultimoEstado[amb]) {
-      ultimoEstado[amb] = novoValor;
+    console.log([DEBUG] Tentando enviar notificação: ${texto}); // <-- log extra
 
-      const texto =
-        novoValor === 1
-          ? ${amb.toUpperCase()} ficou CLARO ðŸ’¡
-          : ${amb.toUpperCase()} ficou ESCURO ðŸŒ‘;
-
-      const message = {
-        token: DEVICE_TOKEN,
-        notification: {
-          title: MudanÃ§a no ${amb},
-          body: texto
-        }
-      };
-
-      try {
-        await admin.messaging().send(message);
-        console.log(ðŸ“¨ NotificaÃ§Ã£o enviada: ${texto});
-      } catch (e) {
-        console.error("âŒ Erro ao enviar notificaÃ§Ã£o:", e);
+    const message = {
+      token: DEVICE_TOKEN,
+      notification: {
+        title: Mudança no ${amb},
+        body: texto
       }
+    };
+
+    try {
+      const response = await admin.messaging().send(message);
+      console.log(?? Notificação enviada: ${texto}, response);
+    } catch (e) {
+      console.error("? Erro ao enviar notificação:", e);
     }
-  });
-});
-
-// PÃ¡gina padrÃ£o
-app.get("/", (req, res) => {
-  res.send("Servidor FCM funcionando e monitorando ambientes!");
-});
-
-app.listen(PORT, () => {
-  console.log("ðŸš€ Server listening on port " + PORT);
+  }
 });
