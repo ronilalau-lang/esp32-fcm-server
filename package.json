@@ -1,13 +1,13 @@
 {
-  "name": "esp32-notify",
+  "name": "esp32-fcm-server",
   "version": "1.0.0",
-  "type": "module",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "firebase-admin": "^11.10.1"
+    "firebase-admin": "^12.0.0"
   }
 }
