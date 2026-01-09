@@ -4,8 +4,8 @@ const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 
 // ================= CONFIGURAÇÃO DO FIREBASE =================
-// Lê a variável de ambiente FIREBASE_SERVICE_ACCOUNT
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.replace(/\\n/g, '\n'));
+// Pega o JSON da variável de ambiente
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -22,6 +22,8 @@ app.get("/", (req, res) => {
 });
 
 // Rota para enviar notificação
+// POST /send
+// Body JSON: { "token": "<SEU_TOKEN_FCM>", "title": "Título", "body": "Mensagem" }
 app.post("/send", async (req, res) => {
   const { token, title, body } = req.body;
 
