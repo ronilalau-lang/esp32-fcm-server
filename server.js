@@ -4,8 +4,8 @@ const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 
 // ================= CONFIGURAÇÃO DO FIREBASE =================
-// Substitua pelo caminho do seu arquivo JSON de credenciais do Firebase
-const serviceAccount = require("./serviceAccountKey.json");
+// Usando variável de ambiente FIREBASE_SERVICE_ACCOUNT
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -47,7 +47,7 @@ app.post("/send", async (req, res) => {
 });
 
 // ================= INICIAR SERVIDOR =================
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
 });
