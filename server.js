@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  throw new Error("FIREBASE_SERVICE_ACCOUNT n„o definida");
+  throw new Error("FIREBASE_SERVICE_ACCOUNT n√£o definida");
 }
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -23,7 +23,7 @@ app.post("/send", async (req, res) => {
   const { token, title, body } = req.body;
 
   if (!token || !title || !body) {
-    return res.status(400).json({ error: "token, title e body s„o obrigatÛrios" });
+    return res.status(400).json({ error: "token, title e body s√£o obrigat√≥rios" });
   }
 
   try {
